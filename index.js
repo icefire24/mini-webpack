@@ -34,28 +34,28 @@ function getDeps(ast, file, deps) {
   });
 }
 /**获取文件依赖信息*/
-function getModuleInfo(entry) {
+function getModuleInfo(filepath) {
   let dep = {};
-  let content = readFile(entry);
+  let content = readFile(filepath);
   let ast = parserCode(content);
-  getDeps(ast, entry, dep);
+  getDeps(ast, filepath, dep);
   let code = convert(ast);
-  const moduleInfo = { entry, dep, code };
+  const moduleInfo = { entry: filepath, dep, code };
   return moduleInfo;
 }
 /**递归获取import依然信息*/
-function getDeepDep(entry, deps) {
-  Object.keys(entry.dep).forEach((val) => {
-    let dep = getModuleInfo(entry.dep[val]);
+function getDeepDep(module, deps) {
+  Object.keys(module.dep).forEach((val) => {
+    let dep = getModuleInfo(module.dep[val]);
     deps.push(dep);
     getDeepDep(dep, deps);
   });
 }
 /**生成依赖图*/
 function getGraf(file) {
-  let entry = getModuleInfo(file);
-  let deps = [entry];
-  getDeepDep(entry, deps);
+  let moduleInfo = getModuleInfo(file);
+  let deps = [moduleInfo];
+  getDeepDep(moduleInfo, deps);
   let graph = {};
   deps.forEach((dep) => {
     graph[dep.entry] = {
@@ -89,16 +89,3 @@ const content = bundle("./src/index.js");
 !fs.existsSync("./dist") && fs.mkdirSync("./dist");
 fs.writeFileSync("./dist/bundle.js", content);
 
-//简易版实现，实现require函数
-
-// (function (list) {
-//   function require(file) {
-//     let module = {};
-//     eval(list[file]);
-//     return module.exports;
-//   }
-//   require("./entry");
-// })({
-//   "./entry": `const add=require('./add');`,
-//   "./add": `module.exports=function(a,b){return a+b}`,
-// });
